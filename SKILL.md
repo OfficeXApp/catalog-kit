@@ -1,181 +1,199 @@
 ---
 name: catalog-funnel
 description: |
-  REST API client for the Catalog Funnel app on OfficeX. Declarative funnel builder for catalogs, quizzes, and multi-step forms with intent-based personalization, video tracking, and Stripe checkout.
-  Use when: (1) Creating or managing funnel/catalog/quiz schemas via API, (2) Pushing catalog JSON configs, (3) Querying funnel analytics and visitor journeys, (4) Managing API keys, (5) Uploading and transcoding videos for funnels, (6) Creating Stripe checkout sessions, (7) Setting up A/B split tests for traffic routing.
-  Triggers: catalog funnel, quiz funnel, funnel builder, catalog schema, funnel analytics, form builder, quiz builder, catalog api, conversion funnel, landing page builder, split test, ab test, traffic split
+  Build and manage marketing catalogs, landing pages, and multi-step funnels with your AI agent. Create catalogs from JSON schemas, publish them instantly, run A/B split tests, and track visitor analytics — all through conversation.
+  Use when: (1) Creating or updating a catalog/funnel/landing page, (2) Checking analytics like visitors, conversions, and drop-off rates, (3) Running A/B tests on different catalog versions, (4) Managing API keys for team access, (5) Uploading videos for catalogs, (6) Viewing individual visitor journeys, (7) Reviewing response distributions for form fields.
+  Triggers: catalog funnel, catalog builder, funnel builder, landing page, lead capture, create catalog, catalog analytics, conversion funnel, form builder, split test, ab test, catalog api
 ---
 
-# Catalog Funnel -- API Skill
+# Catalog Funnel
 
-Declarative funnel builder SaaS for catalogs, quizzes, and multi-step forms. Merchants define funnels as JSON/TypeScript schemas with 56+ component types, intent-based personalization, conditional routing, popup triggers, video tracking, cart/checkout, and analytics. AI agents use this API to CRUD funnels and query conversion data.
+Build and manage marketing catalogs, landing pages, and multi-step funnels — directly through your AI agent. Create catalogs with 56+ component types, publish them to your custom subdomain, run A/B split tests, and monitor conversion analytics in real time.
 
 > **Install on OfficeX:** [officex.app/store/en/app/catalog-funnel](https://officex.app/store/en/app/catalog-funnel)
 
-## Prerequisites
+## What You Can Do
 
-After installing the app on OfficeX, you receive credentials via the install webhook. Or self-signup at the frontend and create API keys from Settings.
+- **Create catalogs** — build lead capture forms, product catalogs, multi-step funnels from a JSON schema
+- **Publish instantly** — catalogs go live at `https://yourname.catalogs.cloud.zoomgtm.com/your-slug`
+- **Check analytics** — see visitors, conversions, page drop-off, field completions, referrer sources, and revenue
+- **Run A/B tests** — split traffic between catalog variants to find what converts best
+- **View visitor journeys** — trace exactly what each visitor did step by step
+- **Manage access** — create API keys for team members or integrations
+- **Upload videos** — add video content with automatic HLS transcoding
+
+## Getting Started
+
+After installing Catalog Funnel on OfficeX, you receive credentials automatically. You can also sign up at the dashboard and create API keys from Settings.
 
 ```bash
-# Option A: OfficeX install credentials
-OFFICEX_INSTALL_ID="your_install_id"
-OFFICEX_INSTALL_SECRET="your_install_secret"
-
-# Option B: API key (created from Settings page)
+# Your API key (created from Settings page or received on install)
 CF_API_KEY="cfk_..."
 
-# API base URL
+# Production API
 CF_API_URL="https://catalog-funnel-api.cloud.zoomgtm.com"
 ```
 
-## Authentication
+### Authentication
 
-**OfficeX credentials:** Bearer token = Base64(install_id:install_secret)
+Pass your API key as a Bearer token on all requests:
+
+```bash
+curl -H "Authorization: Bearer cfk_..." \
+  https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs
+```
+
+If you installed via OfficeX, you can also use your install credentials:
 
 ```bash
 TOKEN=$(echo -n "${OFFICEX_INSTALL_ID}:${OFFICEX_INSTALL_SECRET}" | base64)
-curl -H "Authorization: Bearer $TOKEN" $CF_API_URL/api/v1/catalogs
-```
-
-**API key:** Pass the `cfk_...` token directly as Bearer.
-
-```bash
-curl -H "Authorization: Bearer cfk_..." $CF_API_URL/api/v1/catalogs
-```
-
-## API Reference
-
-### Base URLs
-
-| Stage | API URL |
-|---|---|
-| Production | `https://catalog-funnel-api.cloud.zoomgtm.com` |
-| Staging | `https://catalog-funnel-api-staging.cloud.zoomgtm.com` |
-
-Frontend: `https://{subdomain}.catalogs.cloud.zoomgtm.com/{catalog-slug}`
-
-### GET /health
-
-Health check (unauthenticated).
-
-```json
-{ "ok": true, "stage": "production" }
+curl -H "Authorization: Bearer $TOKEN" \
+  https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs
 ```
 
 ---
 
-### Catalogs (CRUD)
+## Managing Catalogs
 
-All catalog endpoints require authentication.
+### List your catalogs
 
-#### GET /api/v1/catalogs
-
-List all catalogs for the authenticated user.
-
-#### POST /api/v1/catalogs
-
-Create a new catalog. Required fields: `slug`, `name`, `schema`.
-
-**Request Body:**
-```json
-{
-  "slug": "my-funnel",
-  "name": "My Funnel",
-  "schema": { ... },
-  "status": "published",
-  "visibility": "public"
-}
 ```
-
-#### GET /api/v1/catalogs/:id
-
-Get a single catalog with full schema.
-
-#### PUT /api/v1/catalogs/:id
-
-Update a catalog. Supports partial updates. Slug changes can create redirects via `old_slug_action`: `"redirect"` (default) or `"release"`.
-
-#### DELETE /api/v1/catalogs/:id
-
-Delete a catalog.
-
----
-
-### Public Catalog Fetch (No Auth)
-
-### Split Tests (A/B Routing)
-
-#### POST /api/v1/split-tests
-
-Create a split test — maps a slug to multiple destination catalogs with weighted traffic distribution.
-
-```json
-{
-  "slug": "marketing-quiz",
-  "name": "Quiz A/B Test",
-  "destinations": [
-    { "slug": "quiz-v1", "weight": 50, "label": "Control" },
-    { "slug": "quiz-v2", "weight": 50, "label": "Variant A" }
-  ]
-}
+GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs
 ```
-
-- GET /api/v1/split-tests -- List all
-- GET /api/v1/split-tests/:slug -- Get one
-- PUT /api/v1/split-tests/:slug -- Update (name, destinations, status: active|paused)
-- DELETE /api/v1/split-tests/:slug -- Delete
-
----
-
-#### GET /public/catalogs/:subdomain/:slug
-
-Fetch a published catalog schema. Resolution order: direct catalog → active split test → slug redirect → 404. Split test responses include `split_test` metadata with `chosen_slug` and `chosen_label`.
-
----
-
-### Analytics
-
-All analytics endpoints require authentication with `analytics:read` permission. Each call costs **1 credit**. Event ingestion is FREE.
-
-Events are stored in a dedicated analytics DynamoDB table with 180-day TTL. Daily and hourly rollup counters are atomically incremented for fast timeseries queries.
-
-#### GET /api/v1/analytics/catalogs/:id
-
-Aggregate funnel metrics: unique visitors, conversions, page drop-off, field completions, variant breakdown, referrer sources, checkout stats, revenue.
-
-**Query params:** `start`, `end` (ISO dates)
-
-#### GET /api/v1/analytics/catalogs/:id/events
-
-Raw events with filters and cursor pagination.
-
-**Query params:** `start`, `end`, `cursor`, `limit` (default 100, max 500), `event_type`, `page_id`, `component_id`, `variant_slug`, `utm_source`, `utm_medium`, `utm_campaign`, `referrer`
-
-**Response includes** `cursor` for next page (null when done).
-
-#### GET /api/v1/analytics/catalogs/:id/timeseries
-
-Rollup data as a timeseries array — fast reads from pre-computed counters.
-
-**Query params (required):** `start`, `end` (ISO dates), `interval` (`day` or `hour`)
 
 **Response:**
 ```json
 {
   "ok": true,
   "data": [
-    { "date": "2024-01-01", "page_views": 150, "sessions": 80, "form_submits": 25, "checkout_completes": 5, "revenue_cents": 4900, ... }
+    {
+      "catalog_id": "01HXY...",
+      "slug": "my-funnel",
+      "name": "My Funnel",
+      "status": "published",
+      "visibility": "public",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
   ]
 }
 ```
 
-#### GET /api/v1/analytics/catalogs/:id/dropoff
+### Create a catalog
 
-Page and field drop-off analysis.
+```
+POST https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs
+```
+
+```json
+{
+  "slug": "spring-sale",
+  "name": "Spring Sale Landing Page",
+  "schema": { ... },
+  "status": "published",
+  "visibility": "public"
+}
+```
+
+- `slug` — URL-friendly name (lowercase, hyphens). Your catalog will be live at `https://yourname.catalogs.cloud.zoomgtm.com/spring-sale`
+- `status` — `"published"` (live) or `"draft"` (hidden). Default: `"published"`
+- `visibility` — `"public"` (listed) or `"unlisted"` (link-only). Default: `"unlisted"`
+
+**Response (201):**
+```json
+{
+  "ok": true,
+  "data": {
+    "catalog_id": "01HXY...",
+    "slug": "spring-sale",
+    "name": "Spring Sale Landing Page",
+    "status": "published",
+    "visibility": "public",
+    "url": "https://yourname.catalogs.cloud.zoomgtm.com/spring-sale"
+  }
+}
+```
+
+### View a catalog
+
+```
+GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs/:id
+```
+
+Returns the full catalog including its schema.
+
+### Update a catalog
+
+```
+PUT https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs/:id
+```
+
+All fields are optional — only send what you want to change:
+
+```json
+{
+  "name": "Updated Name",
+  "schema": { ... },
+  "status": "draft",
+  "visibility": "public",
+  "slug": "new-slug",
+  "old_slug_action": "redirect"
+}
+```
+
+When changing the slug, `old_slug_action` controls what happens to the old URL:
+- `"redirect"` (default) — old URL redirects to the new one
+- `"release"` — old URL becomes available for reuse
+
+### Delete a catalog
+
+```
+DELETE https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs/:id
+```
+
+---
+
+## Analytics & Results
+
+All analytics endpoints require authentication. Each analytics call costs **1 credit**. Event tracking (visitor activity) is **free**.
+
+### Overview metrics
+
+```
+GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/analytics/catalogs/:id
+```
+
+**Query params:** `start`, `end` (ISO dates, e.g. `2024-01-01`)
+
+Returns aggregate metrics: unique visitors, total page views, form submissions, conversion rate, page-level views, variant breakdown, referrer sources, checkout stats, and revenue.
+
+### Timeseries (daily/hourly trends)
+
+```
+GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/analytics/catalogs/:id/timeseries
+```
+
+**Query params (required):** `start`, `end` (ISO dates), `interval` (`day` or `hour`)
+
+```json
+{
+  "ok": true,
+  "data": [
+    { "date": "2024-01-01", "page_views": 150, "sessions": 80, "form_submits": 25, "checkout_completes": 5, "revenue_cents": 4900 }
+  ]
+}
+```
+
+### Drop-off analysis
+
+See exactly where visitors abandon your funnel:
+
+```
+GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/analytics/catalogs/:id/dropoff
+```
 
 **Query params:** `start`, `end` (ISO dates)
 
-**Response:**
 ```json
 {
   "ok": true,
@@ -192,13 +210,16 @@ Page and field drop-off analysis.
 }
 ```
 
-#### GET /api/v1/analytics/catalogs/:id/responses
+### Response distributions
 
-Answer breakdowns per component — shows distribution of responses.
+See how visitors answered each question or form field:
+
+```
+GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/analytics/catalogs/:id/responses
+```
 
 **Query params:** `start`, `end`, `page_id`, `component_id` (all optional)
 
-**Response:**
 ```json
 {
   "ok": true,
@@ -207,9 +228,9 @@ Answer breakdowns per component — shows distribution of responses.
       "questions/q1": {
         "total_responses": 200,
         "distribution": {
-          "Call To Action": { "count": 112, "percent": 56 },
-          "Click To Act": { "count": 28, "percent": 14 },
-          "Create The Ad": { "count": 60, "percent": 30 }
+          "Option A": { "count": 112, "percent": 56 },
+          "Option B": { "count": 28, "percent": 14 },
+          "Option C": { "count": 60, "percent": 30 }
         }
       }
     }
@@ -217,79 +238,122 @@ Answer breakdowns per component — shows distribution of responses.
 }
 ```
 
-#### GET /api/v1/analytics/tracers/:tracerId
+### Raw events
 
-Full visitor journey — every event for a single visitor in chronological order.
+Browse individual visitor events with filtering:
 
-**Response includes** summary: total events, first/last seen, pages viewed, submitted status.
+```
+GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/analytics/catalogs/:id/events
+```
+
+**Query params:** `start`, `end`, `cursor`, `limit` (default 100, max 500), `event_type`, `page_id`, `component_id`, `variant_slug`, `utm_source`, `utm_medium`, `utm_campaign`, `referrer`
+
+Response includes a `cursor` for pagination (null when done).
+
+### Visitor journey
+
+Trace a single visitor's complete journey through your catalog:
+
+```
+GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/analytics/tracers/:tracerId
+```
+
+Returns every event in chronological order with a summary: total events, first/last seen, pages viewed, and whether they submitted.
 
 ---
 
-### Schema Introspection
+## A/B Split Tests
 
-#### GET /api/v1/catalogs/:id/schema/ids
+Test different versions of your catalog to find what converts best. Split tests route visitors to different catalog variants based on weighted traffic distribution.
 
-Flat JSON map of all page and component IDs with labels and types. Useful for building analytics queries programmatically.
+### Create a split test
 
-**Response:**
+```
+POST https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/split-tests
+```
+
+```json
+{
+  "slug": "spring-sale",
+  "name": "Spring Sale A/B Test",
+  "destinations": [
+    { "slug": "spring-sale-v1", "weight": 50, "label": "Control" },
+    { "slug": "spring-sale-v2", "weight": 50, "label": "New headline" }
+  ]
+}
+```
+
+The `slug` is the URL visitors see. They get routed to one of the destination catalogs based on weights. Visitors are sticky — they always see the same variant on return visits.
+
+### Other split test operations
+
+- `GET /api/v1/split-tests` — List all split tests
+- `GET /api/v1/split-tests/:slug` — Get one split test
+- `PUT /api/v1/split-tests/:slug` — Update (change `name`, `destinations`, or `status`: `"active"` / `"paused"`)
+- `DELETE /api/v1/split-tests/:slug` — Delete a split test
+
+---
+
+## Schema Introspection
+
+Get a map of all pages and components in a catalog — useful for understanding the structure before querying analytics:
+
+```
+GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs/:id/schema/ids
+```
+
 ```json
 {
   "pages": {
-    "questions": { "title": "Marketing Knowledge", "index": 0 },
-    "results": { "title": "Your Results", "index": 1 }
+    "landing": { "title": "Get Started", "index": 0 },
+    "details": { "title": "Your Details", "index": 1 }
   },
   "components": {
-    "questions/q1": { "type": "multiple_choice", "label": "What does CTA stand for?", "quiz": true },
-    "questions/email": { "type": "email", "label": "Your Email", "required": true }
+    "landing/email": { "type": "email", "label": "Your Email", "required": true },
+    "landing/company": { "type": "short_text", "label": "Company Name" }
   },
-  "routing_entry": "questions"
+  "routing_entry": "landing"
 }
 ```
 
 ---
 
-### Event Tracking (No Auth — FREE)
+## API Keys
 
-#### POST /events
+Manage API keys for team members or integrations.
 
-Track a single event. Valid types: `page_view`, `field_change`, `field_complete`, `form_submit`, `action_click`, `exit_intent`, `session_start`, `session_resume`, `cart_add`, `cart_remove`, `checkout_start`, `checkout_skip`, `checkout_complete`, `payment_info_added`, `offer_declined`, `lead_captured`, `video_play`, `video_pause`, `video_progress`, `video_complete`, `video_chapter`, `video_seek`
-
-#### POST /events/batch
-
-Track up to 25 events at once.
-
-### Variant Analytics
-
-Every catalog gets an automatic `catalog:{catalog_id}` tag. To group variant catalogs for cross-variant analytics, add the base catalog's `catalog:{base_id}` tag to each variant's `schema.tags`. API keys scoped with matching `tag_patterns` can query analytics across all tagged variants.
-
-### Webhooks
-
-All event types are forwarded to the catalog's `webhook_url` (if configured). Payload includes `event_id` (ULID) for deduplication and `schema_ref` with human-readable page/component context.
+- `POST /api/v1/api-keys` — Create a key (roles: `reader`, `editor`, `admin`, `custom`). Returns the secret once — store it securely.
+- `GET /api/v1/api-keys` — List all keys (secrets redacted)
+- `DELETE /api/v1/api-keys/:keyId` — Revoke a key
+- `POST /api/v1/api-keys/:keyId/rotate` — Rotate: revokes old key, creates new one with same config
 
 ---
 
-### API Keys
+## Videos
 
-Require `api_keys:manage` permission.
+Upload video content to use in your catalogs with automatic HLS transcoding:
 
-- POST /api/v1/api-keys -- Create (roles: reader, editor, admin, custom)
-- GET /api/v1/api-keys -- List (secrets redacted)
-- DELETE /api/v1/api-keys/:keyId -- Revoke
-- POST /api/v1/api-keys/:keyId/rotate -- Rotate
-
----
-
-### Videos
-
-- POST /api/v1/videos/upload -- Upload for HLS transcoding
-- GET /api/v1/videos/:videoId/status -- Transcode status
-- GET /api/v1/videos/:videoId/hls_url -- HLS playback URL
+- `POST /api/v1/videos/upload` — Upload a video file
+- `GET /api/v1/videos/:videoId/status` — Check transcoding progress
+- `GET /api/v1/videos/:videoId/hls_url` — Get the playback URL
 
 ---
 
-## CatalogSchema Reference
+## Webhooks
 
-Minimal example:
+If your catalog has a `webhook_url` configured in its schema, all visitor events are forwarded there in real time. Each webhook payload includes an `event_id` (ULID) for deduplication and `schema_ref` with human-readable page/component context.
+
+---
+
+## Variant Analytics
+
+Every catalog gets an automatic `catalog:{catalog_id}` tag. To compare analytics across catalog variants (e.g. for A/B tests), add the base catalog's `catalog:{base_id}` tag to each variant's `schema.tags`. API keys scoped with matching `tag_patterns` can then query analytics across all tagged variants.
+
+---
+
+## Catalog Schema Reference
+
+A catalog schema defines your entire funnel as JSON. Here's a minimal lead capture example:
 
 ```json
 {
@@ -317,32 +381,92 @@ Minimal example:
 
 **Layout (3):** `section_collapse`, `table`, `subform`
 
-### Quiz Scoring
+**Page features:** `payment`, `captcha`
+
+### Multi-Page Routing
+
+Route visitors through different pages based on their answers:
 
 ```json
 {
-  "id": "q1", "type": "multiple_choice",
-  "label": "What is 2+2?",
-  "options": ["3", "4", "5"],
-  "quiz": { "correct_answer": "4", "points": 10, "explanation": "Basic math" }
+  "routing": {
+    "entry": "landing",
+    "edges": [
+      {
+        "from": "landing",
+        "to": "enterprise",
+        "conditions": {
+          "match": "all",
+          "rules": [{ "field": "company_size", "operator": "greater_than", "value": 100 }]
+        }
+      },
+      { "from": "landing", "to": "standard", "is_default": true }
+    ]
+  }
+}
+```
+
+**Condition operators:** `equals`, `not_equals`, `contains`, `not_contains`, `greater_than`, `less_than`, `greater_than_or_equal`, `less_than_or_equal`, `starts_with`, `ends_with`, `regex`, `in`, `not_in`, `is_empty`, `is_not_empty`, `between`
+
+### Quiz Scoring
+
+Add quiz scoring to any multiple choice or input component:
+
+```json
+{
+  "id": "q1",
+  "type": "multiple_choice",
+  "label": "What does CTA stand for?",
+  "options": ["Click To Act", "Call To Action", "Create The Ad"],
+  "quiz": { "correct_answer": "Call To Action", "points": 10, "explanation": "CTA = Call To Action" }
 }
 ```
 
 Score-based routing: `{ "score": "percent", "operator": "greater_than", "value": 80 }`
 
-### Routing & Conditions
-
-Operators: `equals`, `not_equals`, `contains`, `not_contains`, `greater_than`, `less_than`, `greater_than_or_equal`, `less_than_or_equal`, `starts_with`, `ends_with`, `regex`, `in`, `not_in`, `is_empty`, `is_not_empty`, `between`
-
 ### Popups
 
-Trigger types: `exit_intent`, `scroll_depth`, `inactive`, `timed`, `page_count`, `custom`, `video_progress`, `video_chapter`
+Trigger popups based on visitor behavior:
 
-### CLI
+```json
+{
+  "popups": [
+    {
+      "id": "exit-popup",
+      "trigger": { "type": "exit_intent", "delay_ms": 3000 },
+      "pages": ["landing"],
+      "mode": "modal",
+      "content": { "title": "Wait!", "body": "Get 10% off before you go" }
+    }
+  ]
+}
+```
+
+**Trigger types:** `exit_intent`, `scroll_depth`, `inactive`, `timed`, `page_count`, `custom`, `video_progress`, `video_chapter`
+
+---
+
+## CLI
+
+Manage catalogs from the command line:
 
 ```bash
-npx catalogs catalog push schema.json --publish
-npx catalogs catalog list
-npx catalogs video upload ./intro.mp4
-npx catalogs video status VIDEO_ID
+npx catalogs catalog push schema.json --publish    # Create or update a catalog from a JSON file
+npx catalogs catalog list                           # List all your catalogs
+npx catalogs video upload ./intro.mp4               # Upload a video
+npx catalogs video status VIDEO_ID                  # Check transcoding progress
 ```
+
+---
+
+## Event Tracking (Free)
+
+Visitor events are tracked automatically by the catalog frontend. You can also send custom events:
+
+```
+POST https://catalog-funnel-api.cloud.zoomgtm.com/events
+```
+
+**Valid event types:** `page_view`, `field_change`, `field_complete`, `form_submit`, `action_click`, `exit_intent`, `session_start`, `session_resume`, `cart_add`, `cart_remove`, `checkout_start`, `checkout_skip`, `checkout_complete`, `payment_info_added`, `offer_declined`, `lead_captured`, `video_play`, `video_pause`, `video_progress`, `video_complete`, `video_chapter`, `video_seek`
+
+Batch up to 25 events: `POST /events/batch` with `{ "events": [...] }`
