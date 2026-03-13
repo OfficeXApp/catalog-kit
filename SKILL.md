@@ -249,7 +249,7 @@ Browse individual visitor events with filtering:
 GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/analytics/catalogs/:id/events
 ```
 
-**Query params:** `start`, `end`, `cursor`, `limit` (default 100, max 500), `event_type`, `page_id`, `component_id`, `variant_slug`, `utm_source`, `utm_medium`, `utm_campaign`, `referrer`
+**Query params:** `start`, `end`, `cursor`, `limit` (default 100, max 5000), `event_type`, `page_id`, `component_id`, `variant_slug`, `utm_source`, `utm_medium`, `utm_campaign`, `referrer`
 
 Response includes a `cursor` for pagination (null when done).
 
@@ -490,13 +490,35 @@ npx catalogs video status VIDEO_ID                  # Check transcoding progress
 
 Automatically route visitors to the best catalog variant using natural language hints. Instead of requiring exact variant slugs, pass a description and let the AI pick the right variant.
 
-### Route a visitor with hints
+### Route a visitor with a hint (GET — query param)
 
 ```
-GET https://catalog-funnel-api.cloud.zoomgtm.com/public/route-variant?subdomain=yourname&slug=my-catalog&hints=female+entrepreneur+interested+in+social+media
+# Using subdomain:
+GET https://catalog-funnel-api.cloud.zoomgtm.com/public/route-variant?subdomain=yourname&slug=my-catalog&hint="female entrepreneur interested in social media"
+
+# Using custom domain instead:
+GET https://catalog-funnel-api.cloud.zoomgtm.com/public/route-variant?domain=funnels.mycompany.com&slug=my-catalog&hint="female entrepreneur interested in social media"
 ```
 
-**Response:**
+> **Note:** Use quotes around the hint value for readability — browsers automatically encode `"` to `%22` and spaces to `+`/`%20`. Both `hint`/`hints` and `subdomain`/`domain` are accepted.
+
+### Route a visitor with a hint (POST — JSON body)
+
+If URL encoding is a concern, use the POST alternative with a JSON body:
+
+```bash
+curl -X POST https://catalog-funnel-api.cloud.zoomgtm.com/public/route-variant \
+  -H "Content-Type: application/json" \
+  -d '{
+    "subdomain": "yourname",
+    "slug": "my-catalog",
+    "hint": "female entrepreneur interested in social media"
+  }'
+```
+
+Both `hint`/`hints` and `subdomain`/`domain` are accepted.
+
+**Response (same for GET and POST):**
 ```json
 {
   "ok": true,
@@ -511,14 +533,17 @@ GET https://catalog-funnel-api.cloud.zoomgtm.com/public/route-variant?subdomain=
 
 ### Frontend hint URLs
 
-The frontend handles AI routing automatically — just add `hints` to the URL:
+The frontend handles AI routing automatically — just add `hint` to the URL. Works on both subdomain URLs and custom domains:
 
 ```
-# AI-routed (base catalog shows immediately, variant hot-swaps when AI responds):
-https://yourname.catalogs.cloud.zoomgtm.com/my-catalog?hints=female+entrepreneur&ref=253
+# Subdomain URL:
+https://yourname.catalogs.cloud.zoomgtm.com/my-catalog?hint="female entrepreneur"&ref=253
+
+# Custom domain URL (works the same way):
+https://funnels.mycompany.com/my-catalog?hint="female entrepreneur"&ref=253
 
 # Silent redirect (for affiliates — suppresses event tracking):
-https://yourname.catalogs.cloud.zoomgtm.com/my-catalog?hints=problem+aware+male&silent_redirect=true&ref=253
+https://yourname.catalogs.cloud.zoomgtm.com/my-catalog?hint="problem aware male"&silent_redirect=true&ref=253
 
 # After AI routing resolves, browser URL updates to:
 https://yourname.catalogs.cloud.zoomgtm.com/my-catalog/problem-aware-male?ref=253
