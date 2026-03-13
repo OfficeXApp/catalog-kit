@@ -2,8 +2,8 @@
 name: catalog-funnel
 description: |
   REST API client for the Catalog Funnel app on OfficeX. Declarative funnel builder for catalogs, quizzes, and multi-step forms with intent-based personalization, video tracking, and Stripe checkout.
-  Use when: (1) Creating or managing funnel/catalog/quiz schemas via API, (2) Pushing catalog JSON configs, (3) Querying funnel analytics and visitor journeys, (4) Managing API keys, (5) Uploading and transcoding videos for funnels, (6) Creating Stripe checkout sessions.
-  Triggers: catalog funnel, quiz funnel, funnel builder, catalog schema, funnel analytics, form builder, quiz builder, catalog api, conversion funnel, landing page builder
+  Use when: (1) Creating or managing funnel/catalog/quiz schemas via API, (2) Pushing catalog JSON configs, (3) Querying funnel analytics and visitor journeys, (4) Managing API keys, (5) Uploading and transcoding videos for funnels, (6) Creating Stripe checkout sessions, (7) Setting up A/B split tests for traffic routing.
+  Triggers: catalog funnel, quiz funnel, funnel builder, catalog schema, funnel analytics, form builder, quiz builder, catalog api, conversion funnel, landing page builder, split test, ab test, traffic split
 ---
 
 # Catalog Funnel -- API Skill
@@ -103,9 +103,33 @@ Delete a catalog.
 
 ### Public Catalog Fetch (No Auth)
 
+### Split Tests (A/B Routing)
+
+#### POST /api/v1/split-tests
+
+Create a split test — maps a slug to multiple destination catalogs with weighted traffic distribution.
+
+```json
+{
+  "slug": "marketing-quiz",
+  "name": "Quiz A/B Test",
+  "destinations": [
+    { "slug": "quiz-v1", "weight": 50, "label": "Control" },
+    { "slug": "quiz-v2", "weight": 50, "label": "Variant A" }
+  ]
+}
+```
+
+- GET /api/v1/split-tests -- List all
+- GET /api/v1/split-tests/:slug -- Get one
+- PUT /api/v1/split-tests/:slug -- Update (name, destinations, status: active|paused)
+- DELETE /api/v1/split-tests/:slug -- Delete
+
+---
+
 #### GET /public/catalogs/:subdomain/:slug
 
-Fetch a published catalog schema for rendering.
+Fetch a published catalog schema. Resolution order: direct catalog → active split test → slug redirect → 404. Split test responses include `split_test` metadata with `chosen_slug` and `chosen_label`.
 
 ---
 
