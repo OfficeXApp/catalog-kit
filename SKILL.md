@@ -2,8 +2,8 @@
 name: catalog-funnel
 description: |
   Build and manage marketing catalogs, landing pages, and multi-step funnels with your AI agent. Create catalogs from JSON schemas, publish them instantly, run A/B split tests, and track visitor analytics — all through conversation.
-  Use when: (1) Creating or updating a catalog/funnel/landing page, (2) Checking analytics like visitors, conversions, and drop-off rates, (3) Running A/B tests on different catalog versions, (4) Managing API keys for team access, (5) Uploading videos for catalogs, (6) Viewing individual visitor journeys, (7) Reviewing response distributions for form fields.
-  Triggers: catalog funnel, catalog builder, funnel builder, landing page, lead capture, create catalog, catalog analytics, conversion funnel, form builder, split test, ab test, catalog api
+  Use when: (1) Creating or updating a catalog/funnel/landing page, (2) Checking analytics like visitors, conversions, and drop-off rates, (3) Running A/B tests on different catalog versions, (4) AI-routing visitors to the right catalog variant with natural language hints, (5) Managing API keys for team access, (6) Uploading videos for catalogs, (7) Viewing individual visitor journeys, (8) Reviewing response distributions for form fields, (9) Creating sandboxes to safely edit catalogs without affecting production, (10) Using the element inspector to get exact component references for AI agents.
+  Triggers: catalog funnel, catalog builder, funnel builder, landing page, lead capture, create catalog, catalog analytics, conversion funnel, form builder, split test, ab test, catalog api, ai routing, variant routing, hint routing, sandbox, element inspector, devtools
 ---
 
 # Catalog Funnel
@@ -18,6 +18,9 @@ Build and manage marketing catalogs, landing pages, and multi-step funnels — d
 - **Publish instantly** — catalogs go live at `https://yourname.catalogs.cloud.zoomgtm.com/your-slug`
 - **Check analytics** — see visitors, conversions, page drop-off, field completions, referrer sources, and revenue
 - **Run A/B tests** — split traffic between catalog variants to find what converts best
+- **AI variant routing** — auto-route visitors to the best catalog variant using natural language hints
+- **Sandbox editing** — clone a catalog to safely make changes without affecting the live version, then promote when ready
+- **Element inspector** — hold Shift+Alt to hover-inspect any element and copy its exact `pageId/componentId` reference for AI agents
 - **View visitor journeys** — trace exactly what each visitor did step by step
 - **Manage access** — create API keys for team members or integrations
 - **Upload videos** — add video content with automatic HLS transcoding
@@ -444,6 +447,30 @@ Trigger popups based on visitor behavior:
 
 **Trigger types:** `exit_intent`, `scroll_depth`, `inactive`, `timed`, `page_count`, `custom`, `video_progress`, `video_chapter`
 
+### Completion Screen
+
+Customize what visitors see after submitting:
+
+```json
+{
+  "settings": {
+    "completion": {
+      "heading": "You're all set!",
+      "message": "We'll be in touch within 24 hours.",
+      "redirect_url": "https://example.com",
+      "redirect_delay": 3000,
+      "actions": [
+        { "type": "fill_again", "label": "Submit Again", "style": "secondary" },
+        { "type": "share", "label": "Share", "style": "ghost" },
+        { "type": "redirect", "label": "Visit Site", "url": "https://example.com", "style": "primary" }
+      ]
+    }
+  }
+}
+```
+
+**Action types:** `fill_again` (reset form), `share` (copy URL), `redirect` (navigate to URL). All fields are optional — omit `completion` entirely for a minimal checkmark screen.
+
 ---
 
 ## CLI
@@ -456,6 +483,133 @@ npx catalogs catalog list                           # List all your catalogs
 npx catalogs video upload ./intro.mp4               # Upload a video
 npx catalogs video status VIDEO_ID                  # Check transcoding progress
 ```
+
+---
+
+## AI Variant Routing
+
+Automatically route visitors to the best catalog variant using natural language hints. Instead of requiring exact variant slugs, pass a description and let the AI pick the right variant.
+
+### Route a visitor with hints
+
+```
+GET https://catalog-funnel-api.cloud.zoomgtm.com/public/route-variant?subdomain=yourname&slug=my-catalog&hints=female+entrepreneur+interested+in+social+media
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "data": {
+    "variant_slug": "problem-aware-female",
+    "reason": "ai_matched"
+  }
+}
+```
+
+`reason` values: `ai_matched` (LLM picked best match), `single_variant` (only one variant exists), `no_variants` (catalog has no variants), `fallback` (LLM couldn't decide, returned first variant).
+
+### Frontend hint URLs
+
+The frontend handles AI routing automatically — just add `hints` to the URL:
+
+```
+# AI-routed (base catalog shows immediately, variant hot-swaps when AI responds):
+https://yourname.catalogs.cloud.zoomgtm.com/my-catalog?hints=female+entrepreneur&ref=253
+
+# Silent redirect (for affiliates — suppresses event tracking):
+https://yourname.catalogs.cloud.zoomgtm.com/my-catalog?hints=problem+aware+male&silent_redirect=true&ref=253
+
+# After AI routing resolves, browser URL updates to:
+https://yourname.catalogs.cloud.zoomgtm.com/my-catalog/problem-aware-male?ref=253
+```
+
+The base catalog renders instantly while AI routing resolves in the background. Visitors never see a loading screen — the variant swap is seamless.
+
+---
+
+## Sandbox Mode
+
+Edit catalogs safely without affecting production. A sandbox is a full clone of your catalog with its own URL and schema — make changes, preview live, and promote when ready.
+
+### Create a sandbox
+
+```
+POST https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs/:id/sandbox
+```
+
+```json
+{
+  "suffix": "redesign-v2"
+}
+```
+
+**Response (201):**
+```json
+{
+  "ok": true,
+  "data": {
+    "catalog_id": "01ABC...",
+    "slug": "spring-sale--redesign-v2",
+    "name": "Spring Sale Landing Page (Sandbox: redesign-v2)",
+    "sandbox_of": "01HXY...",
+    "parent_slug": "spring-sale",
+    "url": "https://yourname.catalogs.cloud.zoomgtm.com/spring-sale--redesign-v2"
+  }
+}
+```
+
+The sandbox is a regular catalog with its own URL. Edit it freely using `PUT /api/v1/catalogs/:sandbox_id` — your production catalog is untouched. The frontend shows an amber "SANDBOX" banner so you always know you're in sandbox mode.
+
+### List sandboxes for a catalog
+
+```
+GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs/:id/sandboxes
+```
+
+### Promote sandbox to production
+
+Copy the sandbox schema to the parent catalog:
+
+```
+POST https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs/:sandbox_id/promote
+```
+
+```json
+{
+  "delete_sandbox": true
+}
+```
+
+By default the sandbox is deleted after promotion. Set `"delete_sandbox": false` to keep it.
+
+### Discard a sandbox
+
+```
+DELETE https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs/:sandbox_id
+```
+
+### Listing catalogs with sandboxes
+
+By default, `GET /api/v1/catalogs` hides sandboxes. Add `?include_sandboxes=true` to include them. Each catalog response includes `sandbox_of` (null for regular catalogs, parent catalog ID for sandboxes).
+
+---
+
+## Element Inspector (DevEx)
+
+Built-in developer tool for AI agent workflows. Hold **Shift+Alt** and hover over any element in a live catalog to see its exact reference path (`pageId/componentId`) with a one-click copy button.
+
+This makes it trivial to tell an AI agent exactly which element to modify — no guessing, no digging through JSON.
+
+The reference format matches the schema introspection endpoint (`GET /api/v1/catalogs/:id/schema/ids`), so copied references map 1:1 to API paths.
+
+**How to use:**
+
+1. Open any catalog in the browser
+2. Hold **Shift+Alt** — a "Inspector active" indicator appears
+3. Hover over any element — it highlights with an indigo border and shows a tooltip with `pageId/componentId (type)`
+4. Click **Copy** to copy the reference to clipboard
+5. Paste the reference into your AI agent conversation (e.g. "change the heading at `landing/hero-title`")
 
 ---
 
