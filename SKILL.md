@@ -8,7 +8,7 @@ description: |
 
 # Catalog Kit
 
-Build and manage marketing catalogs, landing pages, and multi-step funnels — directly through your AI agent. Create catalogs with 56+ component types, publish them instantly, run A/B tests with weighted variants, and monitor conversion analytics in real time.
+Build and manage marketing catalogs, landing pages, and multi-step funnels — directly through your AI agent. Create catalogs with 57+ component types, publish them instantly, run A/B tests with weighted variants, and monitor conversion analytics in real time.
 
 > **Install on OfficeX:** [officex.app/store/en/app/catalog-kit](https://officex.app/store/en/app/catalog-kit)
 
@@ -365,11 +365,11 @@ A catalog schema defines your entire funnel as JSON. Here's a minimal lead captu
 }
 ```
 
-### Component Types (56 total)
+### Component Types (57 total)
 
 **Input (27):** `short_text`, `long_text`, `rich_text`, `email`, `phone`, `url`, `password`, `number`, `currency`, `date`, `datetime`, `time`, `date_range`, `dropdown`, `multiselect`, `multiple_choice`, `checkboxes`, `picture_choice`, `star_rating`, `slider`, `file_upload`, `signature`, `address`, `location`, `switch`, `checkbox`, `choice_matrix`, `ranking`, `opinion_scale`
 
-**Display (11):** `heading`, `paragraph`, `banner`, `image`, `video`, `pdf_viewer`, `social_links`, `html`, `divider`, `faq`, `testimonial`, `pricing_card`
+**Display (12):** `heading`, `paragraph`, `banner`, `image`, `video`, `pdf_viewer`, `social_links`, `html`, `divider`, `faq`, `testimonial`, `pricing_card`, `timeline`
 
 **Layout (3):** `section_collapse`, `table`, `subform`
 
@@ -435,9 +435,9 @@ Add quiz scoring to any multiple choice or input component:
 
 Score-based routing: `{ "score": "percent", "operator": "greater_than", "value": 80 }`
 
-### Inline Quiz Feedback
+### Inline Quiz Feedback (Reveal on Continue)
 
-Show correct/incorrect feedback immediately when a visitor selects an answer (like Fillout.com) by adding `reveal_on_select: true` to the quiz config:
+Show correct/incorrect feedback when the visitor clicks Continue by adding `reveal_on_select: true` to the quiz config:
 
 ```json
 {
@@ -458,14 +458,65 @@ Show correct/incorrect feedback immediately when a visitor selects an answer (li
 }
 ```
 
-When `reveal_on_select` is `true`:
-- The correct answer gets a **green border** immediately after selection
-- A wrong selection gets a **red border**
-- A feedback banner shows "Correct!" or "You got the wrong answer."
-- The explanation text is displayed (if provided)
-- Options become **locked** — the visitor cannot change their answer
+When `reveal_on_select` is `true`, the flow is two-step:
+1. The visitor **selects their answers freely** (options are not locked)
+2. When they click **Continue**, answers are revealed:
+   - Correct answers get a **green border**
+   - Wrong selections get a **red border**
+   - A feedback banner shows "Correct!" or "You got the wrong answer."
+   - The explanation text is displayed (if provided)
+   - Options become **locked**
+   - A banner says "Answers revealed! Review your results above, then click Continue to proceed."
+3. The visitor clicks **Continue again** to proceed to the next page
 
 Works with both `multiple_choice` (single-select) and `checkboxes` (multi-select) components. Omit `reveal_on_select` or set to `false` for the default behavior (no inline feedback — use `reveal_answers` on a later page instead).
+
+### Timeline
+
+Display a vertical timeline with alternating or single-side layout:
+
+```json
+{
+  "id": "process",
+  "type": "timeline",
+  "props": {
+    "variant": "alternating",
+    "items": [
+      { "title": "Step 1: Setup", "description": "Create your account", "icon": "🏠", "color": "#f59e0b" },
+      { "title": "Step 2: Configure", "description": "Set up your campaign", "icon": "🔍", "color": "#ef4444" },
+      { "title": "Step 3: Launch", "description": "Go live", "icon": "📅", "color": "#22c55e" }
+    ]
+  }
+}
+```
+
+**Variants:** `"default"` (all items on the right), `"alternating"` (items alternate left/right on desktop, stack on mobile).
+
+Each item supports: `title` (required), `description` (optional, markdown), `icon` (emoji in colored circle), `image` (URL for a round image), `color` (per-item color, falls back to theme).
+
+### Progress Line
+
+Add a thin progress line at the top of the viewport (like Fillout.com) that fills as the visitor progresses:
+
+```json
+{
+  "settings": {
+    "progress_line": {
+      "enabled": true,
+      "position": "top",
+      "height": 4,
+      "color": "#3b82f6"
+    }
+  }
+}
+```
+
+**Options:**
+- `position`: `"top"` (fixed to top of viewport, default) or `"below_topbar"` (below the existing top bar)
+- `height`: pixel height (default 4)
+- `color`: override color (defaults to theme primary_color)
+
+Independent of the existing `progress_bar` setting — both can coexist.
 
 ### Popups
 
@@ -560,17 +611,27 @@ GET https://api.catalogkit.cc/public/route-variant?user_id=USER_ID&slug=my-catal
 GET https://api.catalogkit.cc/public/route-variant?domain=funnels.mycompany.com&slug=my-catalog&hint="female entrepreneur interested in social media"
 ```
 
-> **Note:** Use quotes around the hint value for readability — browsers automatically encode `"` to `%22` and spaces to `+`/`%20`. Both `hint`/`hints` and `user_id`/`domain` are accepted.
+> **Note:** Use quotes around the hint value for readability — browsers automatically encode `"` to `%22` and spaces to `+`/`%20`. Both `hint` and `hints` are accepted as the param name. Provide either `user_id` or `domain`.
 
 ### Route a visitor with a hint (POST — JSON body)
 
 If URL encoding is a concern, use the POST alternative with a JSON body:
 
 ```bash
+# Using user_id:
 curl -X POST https://api.catalogkit.cc/public/route-variant \
   -H "Content-Type: application/json" \
   -d '{
     "user_id": "USER_ID",
+    "slug": "my-catalog",
+    "hint": "female entrepreneur interested in social media"
+  }'
+
+# Using custom domain:
+curl -X POST https://api.catalogkit.cc/public/route-variant \
+  -H "Content-Type: application/json" \
+  -d '{
+    "domain": "funnels.mycompany.com",
     "slug": "my-catalog",
     "hint": "female entrepreneur interested in social media"
   }'
@@ -606,8 +667,9 @@ https://funnels.mycompany.com/my-catalog?hint="female entrepreneur"&ref=253
 # Silent redirect (for affiliates — suppresses event tracking):
 https://SUBDOMAIN.catalogkit.cc/my-catalog?hint="problem aware male"&silent_redirect=true&ref=253
 
-# After AI routing resolves, browser URL updates to:
-https://SUBDOMAIN.catalogkit.cc/my-catalog/problem-aware-male?ref=253
+# After AI routing resolves, browser URL updates to the target catalog slug:
+# (uses target_slug when the variant routes to a different catalog, otherwise variant_slug)
+https://SUBDOMAIN.catalogkit.cc/my-catalog/welcome-female-catalog?ref=253
 ```
 
 The frontend holds rendering for up to 400ms while AI routing resolves. If routing completes within that window (typical), visitors see the correct variant catalog directly with no flash. If routing is slow, the base catalog renders first and the variant swaps in when ready.
