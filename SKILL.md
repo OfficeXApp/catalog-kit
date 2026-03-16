@@ -1648,7 +1648,7 @@ const kit = window.CatalogKit['cat_abc'];       // direct access by ID
 | `kit.goNext()` | Advance to next page (runs validation + event listeners) |
 | `kit.goBack()` | Go to previous page |
 | **Component props** | |
-| `kit.setComponentProp(id, prop, value)` | Override any component prop at runtime (e.g. `hidden`, `label`, `options`) |
+| `kit.setComponentProp(id, prop, value)` | Override any component prop at runtime (e.g. `hidden`, `label`, `options`). Works on ALL component types — display and input alike |
 | **Events** | |
 | `kit.on(event, callback)` | Subscribe to lifecycle events (see Events section below) |
 | `kit.off(event, callback)` | Unsubscribe |
@@ -1750,14 +1750,14 @@ Fetch data from your backend when a page loads and populate dropdown options dyn
 
 #### 3. Conditional UI based on field value
 
-Show or hide components based on user selections without server calls.
+Show or hide components based on user selections without server calls. Works on **all component types** — inputs AND display components (callout, banner, image, etc.).
 
 ```json
 {
   "id": "conditional_ui",
   "type": "html",
   "props": {
-    "content": "<script>\nconst kit = window.CatalogKit.get();\n\nkit.on('fieldchange:account_type', (e) => {\n  const isBusiness = e.value === 'business';\n  kit.setComponentProp('company_name', 'hidden', !isBusiness);\n  kit.setComponentProp('tax_id', 'hidden', !isBusiness);\n  kit.setComponentProp('company_name', 'required', isBusiness);\n});\n</script>"
+    "content": "<script>\nconst kit = window.CatalogKit.get();\n\nkit.on('fieldchange:account_type', (e) => {\n  const isBusiness = e.value === 'business';\n  // Hide/show input fields\n  kit.setComponentProp('company_name', 'hidden', !isBusiness);\n  kit.setComponentProp('tax_id', 'hidden', !isBusiness);\n  kit.setComponentProp('company_name', 'required', isBusiness);\n  // Hide/show display components (banners, callouts, images, etc.)\n  kit.setComponentProp('business_info_banner', 'hidden', !isBusiness);\n});\n</script>"
   }
 }
 ```
@@ -1876,7 +1876,7 @@ Decide at page-enter time whether to skip a page entirely.
 - **Clean up listeners** when appropriate — use `kit.off()` or scope cleanup to `pageexit` to avoid stale listeners.
 - **Use `setButtonLoading(true)`** before async operations and `setButtonLoading(false)` in a `finally` block.
 - **Prefer `setValidationError`** over custom error DOM — it integrates with the native validation system and auto-scrolls.
-- **Use `setComponentProp(id, 'hidden', true/false)`** for conditional UI — it respects the existing visibility system.
+- **Use `setComponentProp(id, 'hidden', true/false)`** for dynamic conditional UI — works on ALL component types (display components like `callout`, `banner`, `image` AND input components). Hidden components are excluded from validation.
 - **Use scoped events** (`beforenext:page_id`) instead of global events with `if` checks inside the callback.
 - **For DOM events** (blur, focus, click, input) use the DOM directly — don't wait for CatalogKit to add them.
 - **Use `setTimeout` with `pageenter`/`pageexit`** for timed logic — always clean up timers on exit.
