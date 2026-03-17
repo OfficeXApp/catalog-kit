@@ -161,6 +161,103 @@ curl -H "Authorization: Bearer $TOKEN" \
 
 ---
 
+## Current User
+
+Check who you are authenticated as — returns your email, subdomain, custom domain, credits, and auth details.
+
+```
+GET https://api.catalogkit.cc/api/v1/me
+```
+
+**Response (200):**
+```json
+{
+  "ok": true,
+  "data": {
+    "user_id": "usr_abc123",
+    "email": "you@example.com",
+    "username": "yourname",
+    "subdomain": "1e6b7940",
+    "custom_domain": "shop.example.com",
+    "catalog_url": "https://shop.example.com",
+    "stripe_key_set": true,
+    "stripe_key_last4": "4x7K",
+    "credits": 850,
+    "officex_connected": true,
+    "auth_method": "api_key",
+    "api_key_id": "kx9f2",
+    "is_superadmin": false,
+    "created_at": "2025-01-15T10:30:00.000Z"
+  }
+}
+```
+
+The CLI equivalent is `catalogs whoami`, which prints this same information in a human-readable format.
+
+---
+
+## Settings
+
+### Get settings
+
+```
+GET https://api.catalogkit.cc/api/v1/settings
+```
+
+**Response (200):**
+```json
+{
+  "ok": true,
+  "data": {
+    "user_id": "usr_abc123",
+    "subdomain": "my-brand",
+    "custom_domain": "shop.example.com",
+    "stripe_key_set": true,
+    "stripe_key_last4": "4x7K"
+  }
+}
+```
+
+### Update settings
+
+```
+PUT https://api.catalogkit.cc/api/v1/settings
+```
+
+```json
+{
+  "subdomain": "my-brand",
+  "custom_domain": "shop.example.com",
+  "stripe_secret_key": "rk_live_..."
+}
+```
+
+All fields are optional — only include the ones you want to change.
+
+| Field | Description |
+|---|---|
+| `subdomain` | 2-32 chars, lowercase alphanumeric + hyphens. Your catalogs are served at `<subdomain>.catalogkit.cc`. Must be unique. |
+| `custom_domain` | Serve catalogs from your own domain. Requires DNS setup (CNAME + TXT verification record). |
+| `stripe_secret_key` | Stripe secret or restricted key for accepting payments. Set to `null` to remove. |
+
+**Response (200):**
+```json
+{
+  "ok": true,
+  "data": {
+    "user_id": "usr_abc123",
+    "subdomain": "my-brand",
+    "custom_domain": "shop.example.com",
+    "stripe_key_set": true,
+    "stripe_key_last4": "4x7K"
+  }
+}
+```
+
+> Changing the subdomain updates all catalog and redirect URLs automatically.
+
+---
+
 ## Managing Catalogs
 
 ### List your catalogs
@@ -2429,7 +2526,7 @@ catalogs catalog push catalog.ts --publish     # Push a TypeScript catalog (func
 catalogs catalog list                           # List all your catalogs
 catalogs video upload ./intro.mp4               # Upload a video
 catalogs video status VIDEO_ID                  # Check transcoding progress
-catalogs whoami                                 # Test API connection
+catalogs whoami                                 # Show your user identity, email, subdomain, credits
 ```
 
 Or run without installing via `npx @officexapp/catalogs-cli <command>`.
