@@ -39,7 +39,7 @@ After installing Catalog Kit on OfficeX, you receive credentials automatically. 
 export CATALOG_KIT_TOKEN="cfk_..."
 ```
 
-The production API URL is `https://api.catalogkit.cc` (used by default — no env var needed).
+The production API URL is **`https://api.catalogkit.cc`** — hardcoded as the default in both the CLI and all SDK examples. You do not need to set an API URL env var. The CLI and REST API both use this URL automatically.
 
 ### Authentication
 
@@ -720,7 +720,7 @@ All input components support these base props for labels, help text, and validat
 | `required` | `boolean` | Marks field as required (red asterisk) |
 | `placeholder` | `string` | Placeholder text inside the input |
 | `hidden` | `boolean` | Hides the field from the UI (legacy — prefer component-level `hidden` instead) |
-| `copyable` | `boolean` | Show a copy-to-clipboard icon next to the input. Works on editable inputs (short_text, long_text, email, phone, url, number, currency, date, datetime, time, password, dropdown, address). The icon appears once the field has a value. |
+| `copyable` | `boolean` | Show a copy-to-clipboard icon next to the input. Works on editable inputs (short_text, long_text, rich_text, email, phone, url, number, currency, date, datetime, time, password, dropdown, address). The icon appears once the field has a value. |
 
 Example with all label props:
 ```json
@@ -1012,7 +1012,7 @@ For inputs that should remain **editable** but also let the user easily copy the
 }
 ```
 
-The copy icon appears next to the input once it has a value. Clicking it copies the current value to clipboard with a checkmark confirmation. Unlike `readonly`, the field remains fully editable. Supported on: `short_text`, `long_text`, `email`, `phone`, `url`, `number`, `currency`, `date`, `datetime`, `time`, `password`, `dropdown`, `address`.
+The copy icon appears next to the input once it has a value. Clicking it copies the current value to clipboard with a checkmark confirmation. Unlike `readonly`, the field remains fully editable. Supported on: `short_text`, `long_text`, `rich_text`, `email`, `phone`, `url`, `number`, `currency`, `date`, `datetime`, `time`, `password`, `dropdown`, `address`.
 
 ### Auto-Skip Pages
 
@@ -2232,6 +2232,68 @@ Example: `https://yoursubdomain.catalogkit.cc/your-catalog?debug_mode=verbose`
 
 ---
 
+## TypeScript-as-Config (Recommended)
+
+Author catalogs as `.ts` files with full type safety, then push via CLI. This is the recommended workflow for AI agents — it's easier to read, write, and diff than raw JSON.
+
+### How it works
+
+1. **Create a `.ts` file** that exports a `CatalogSchema` object as the default export
+2. **Push it** via the CLI — the CLI transpiles the TS, serializes functions (hooks, scripts), and uploads the resulting JSON schema to the API
+
+### Example catalog.ts
+
+```typescript
+import { CatalogSchema } from "@officexapp/catalogs-cli/types";
+
+const catalog: CatalogSchema = {
+  name: "Spring Sale Landing Page",
+  slug: "spring-sale",
+  settings: {
+    theme: { primary_color: "#4F46E5", font: "Inter", mode: "light" },
+    completion: { message: "Thanks for signing up!" },
+  },
+  pages: {
+    landing: {
+      title: "Get Started",
+      components: [
+        { id: "hero", type: "heading", props: { text: "Spring Sale 2025", level: 1 } },
+        { id: "email", type: "email", props: { label: "Your Email", required: true } },
+        { id: "name", type: "short_text", props: { label: "Your Name", required: true } },
+      ],
+      submit_label: "Submit",
+    },
+  },
+  routing: { entry: "landing", edges: [] },
+};
+
+export default catalog;
+```
+
+### Key points
+
+- **Import types** from `@officexapp/catalogs-cli/types` for `CatalogSchema`, component types, etc.
+- **Functions are auto-serialized** — you can write hooks (`on_enter`, `on_change`, `beforenext`) as real functions in TS. The CLI serializes them to strings for the JSON schema.
+- **Default export** — the CLI expects `export default catalog` (or any default export of a `CatalogSchema` object).
+- **No need to JSON.stringify** — the CLI handles the entire TS → JSON → API upload pipeline.
+
+### Pushing a TypeScript catalog
+
+```bash
+# Set your token (only required env var)
+export CATALOG_KIT_TOKEN="cfk_..."
+
+# Push and publish
+catalogs catalog push catalog.ts --publish
+
+# Or via npx (no global install needed)
+npx @officexapp/catalogs-cli catalog push catalog.ts --publish
+```
+
+The CLI transpiles the `.ts` file, extracts the default export, serializes any functions, and calls `PUT /api/v1/catalogs/:id` with the resulting JSON.
+
+---
+
 ## CLI (`@officexapp/catalogs-cli`)
 
 Install the CLI from npm:
@@ -2240,7 +2302,25 @@ Install the CLI from npm:
 npm install -g @officexapp/catalogs-cli
 ```
 
-Manage catalogs from the command line:
+### Configuration
+
+The CLI needs one env var: **`CATALOG_KIT_TOKEN`**. The API URL defaults to `https://api.catalogkit.cc` — you almost never need to override it.
+
+| Env Var | Required | Default | Description |
+|---|---|---|---|
+| `CATALOG_KIT_TOKEN` | **Yes** | — | Your API key (format: `cfk_...`) |
+| `CATALOG_KIT_API_URL` | No | `https://api.catalogkit.cc` | Override API URL (rarely needed) |
+
+**Config resolution order** (first match wins):
+
+1. **Environment variables** — `CATALOG_KIT_TOKEN` and `CATALOG_KIT_API_URL`
+2. **Config file** — `~/.catalog-kit/config.json` with `{ "token": "cfk_...", "api_url": "..." }`
+3. **`.env` file** in the current working directory — parses `CATALOG_KIT_TOKEN` and `CATALOG_KIT_API_URL`
+4. **Defaults** — API URL defaults to `https://api.catalogkit.cc`; token is empty (will error)
+
+> **Common mistake:** The env var is `CATALOG_KIT_TOKEN`, not `CATALOGS_TOKEN`. The config dir is `~/.catalog-kit/`, not `~/.catalogs-cli/`. The API URL is hardcoded to `https://api.catalogkit.cc` by default — do not set `CATALOGS_API_URL` (wrong name).
+
+### Commands
 
 ```bash
 catalogs catalog push schema.json --publish    # Push a JSON catalog
@@ -2252,6 +2332,19 @@ catalogs whoami                                 # Test API connection
 ```
 
 Or run without installing via `npx @officexapp/catalogs-cli <command>`.
+
+### Quick start example
+
+```bash
+# 1. Set your token
+export CATALOG_KIT_TOKEN="cfk_..."
+
+# 2. Test connection
+catalogs whoami
+
+# 3. Push a catalog
+catalogs catalog push my-catalog.ts --publish
+```
 
 ---
 
