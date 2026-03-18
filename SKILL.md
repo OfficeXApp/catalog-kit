@@ -3056,7 +3056,9 @@ Visitor events are tracked automatically by the catalog frontend using first-par
 POST https://api.catalogkit.cc/events
 ```
 
-**Valid event types:** `page_view`, `field_change`, `field_complete`, `form_submit`, `action_click`, `exit_intent`, `session_start`, `session_resume`, `cart_add`, `cart_remove`, `checkout_start`, `checkout_skip`, `checkout_complete`, `payment_info_added`, `offer_declined`, `lead_captured`, `video_play`, `video_pause`, `video_progress`, `video_complete`, `video_chapter`, `video_seek`, `page_auto_skipped`, `popup_shown`, `popup_dismissed`, `popup_converted`
+**Valid event types:** `page_view`, `field_change`, `field_complete`, `form_submit`, `funnel_complete`, `action_click`, `exit_intent`, `session_start`, `session_resume`, `cart_add`, `cart_remove`, `checkout_start`, `checkout_skip`, `checkout_complete`, `payment_info_added`, `offer_declined`, `lead_captured`, `video_play`, `video_pause`, `video_progress`, `video_complete`, `video_chapter`, `video_seek`, `page_auto_skipped`, `popup_shown`, `popup_dismissed`, `popup_converted`
+
+> `funnel_complete` is a belt-and-suspenders completion event that fires alongside `form_submit` when the submitted state is confirmed. Both count toward submissions in analytics.
 
 Batch up to 25 events: `POST /events/batch` with `{ "events": [...] }`
 
