@@ -2,8 +2,8 @@
 name: catalog-kit
 description: |
   Build and manage marketing catalogs, landing pages, and multi-step funnels with your AI agent. Create catalogs from JSON schemas, publish them instantly, run A/B tests with weighted variants, and track visitor analytics — all through conversation.
-  Use when: (1) Creating or updating a catalog/funnel/landing page, (2) Checking analytics like visitors, conversions, and drop-off rates, (3) Running A/B tests on different catalog versions, (4) AI-routing visitors to the right catalog variant with natural language hints, (5) Managing API keys for team access, (6) Uploading videos for catalogs, (7) Viewing individual visitor journeys, (8) Reviewing response distributions for form fields, (9) Creating sandboxes to safely edit catalogs without affecting production, (10) Using the element inspector to get exact component references for AI agents, (11) Submitting form data headlessly via the Agent API for AI agent integrations, (12) Uploading and compressing images for fast loading, (13) Authoring catalogs as TypeScript files with full type safety, (14) Uploading and hosting downloadable files (PDFs, ZIPs, docs) with credit-based billing, (15) Building custom interactive UI with the CatalogKit global API bridge (window.CatalogKit) for inline scripts, real-time field access, and multi-form isolation, (16) AI agents can fill out catalog forms step-by-step via the stateful Agent Session API, (17) Configuring advanced Stripe checkout with 3D Secure verification and authorization holds for free trial funnels, (18) Previewing catalogs locally with hot reload before deploying to cloud, (19) Using local file references (images, videos, scripts) that auto-upload to CDN on push.
-  Triggers: catalog funnel, catalog kit, funnel builder, landing page, lead capture, create catalog, catalog analytics, conversion funnel, form builder, ab test, catalog api, ai routing, variant routing, hint routing, sandbox, element inspector, devtools, image upload, image compression, webp, typescript, ts config, file upload, file download, downloadable, hosted files, CatalogKit, window.CatalogKit, global api, inline script, html script, custom ui, api bridge, multi-form, agent api, headless form, agent session, form submission api, stripe checkout, 3d secure, 3ds, free trial, payment verification, trial end behavior, billing server, stripe webhooks, local dev, local preview, dev server, hot reload, local assets, local files, catalogs dev
+  Use when: (1) Creating or updating a catalog/funnel/landing page, (2) Checking analytics like visitors, conversions, and drop-off rates, (3) Running A/B tests on different catalog versions, (4) AI-routing visitors to the right catalog variant with natural language hints, (5) Managing API keys for team access, (6) Uploading videos for catalogs, (7) Viewing individual visitor journeys, (8) Reviewing response distributions for form fields, (9) Creating sandboxes to safely edit catalogs without affecting production, (10) Using the element inspector to get exact component references for AI agents, (11) Submitting form data headlessly via the Agent API for AI agent integrations, (12) Uploading and compressing images for fast loading, (13) Authoring catalogs as TypeScript files with full type safety, (14) Uploading and hosting downloadable files (PDFs, ZIPs, docs) with credit-based billing, (15) Building custom interactive UI with the CatalogKit global API bridge (window.CatalogKit) for inline scripts, real-time field access, and multi-form isolation, (16) AI agents can fill out catalog forms step-by-step via the stateful Agent Session API, (17) Configuring advanced Stripe checkout with 3D Secure verification and authorization holds for free trial funnels, (18) Previewing catalogs locally with hot reload before deploying to cloud, (19) Using local file references (images, videos, scripts) that auto-upload to CDN on push, (20) Adding cart and checkout to funnels with built-in cart UI (floating button, slide-out drawer, order summary) and Stripe payment integration.
+  Triggers: catalog funnel, catalog kit, funnel builder, landing page, lead capture, create catalog, catalog analytics, conversion funnel, form builder, ab test, catalog api, ai routing, variant routing, hint routing, sandbox, element inspector, devtools, image upload, image compression, webp, typescript, ts config, file upload, file download, downloadable, hosted files, CatalogKit, window.CatalogKit, global api, inline script, html script, custom ui, api bridge, multi-form, agent api, headless form, agent session, form submission api, stripe checkout, 3d secure, 3ds, free trial, payment verification, trial end behavior, billing server, stripe webhooks, local dev, local preview, dev server, hot reload, local assets, local files, catalogs dev, cart, shopping cart, cart sidebar, cart drawer, checkout page, order summary, page offer, offer acceptance, add to cart, cart button, payment page, order bump, upsell
 ---
 
 # Catalog Kit
@@ -27,6 +27,7 @@ Build and manage marketing catalogs, landing pages, and multi-step funnels — d
 - **Upload images (free)** — automatic WebP compression, thumbnail generation, and CDN delivery at no credit cost
 - **Upload videos** — automatic HLS transcoding for adaptive streaming, served via CDN
 - **Upload & download files** — host downloadable files (PDFs, ZIPs, docs) on S3 with CDN delivery, credit-billed per 50MB
+- **Cart & checkout** — built-in cart UI (floating button + slide-out drawer) that collects page offers and sends them to Stripe Checkout. No custom cart HTML needed
 - **Agent API** — AI agents can fill out catalog forms headlessly via the stateful session API, with server-side validation and progressive disclosure
 - **TypeScript-as-config** — author catalogs as .ts files with full type safety, then push via CLI
 - **Local preview** — `catalogs catalog dev my-catalog.ts` previews locally with hot reload, no deploy needed
@@ -3161,6 +3162,128 @@ Built-in developer tool for AI agent workflows. Hold **Shift+Alt** and hover ove
 2. User pastes into Claude: "change this element: `{...copied JSON...}` to say 'Welcome Back'"
 3. AI agent reads the `catalog_id`, `page_id`, `component_id`, and `api_endpoint` from the JSON
 4. AI agent fetches the catalog via `GET /api/v1/catalogs/{catalog_id}`, finds the component at `schema.pages.{page_id}.components` where `id == component_id`, updates the text, and PUTs back
+
+---
+
+## Cart & Checkout
+
+Catalog Kit has a **built-in cart and checkout system**. You do NOT need to build custom cart HTML — the platform provides a floating cart button, a slide-out cart drawer, and a full checkout page out of the box.
+
+### How it works
+
+1. **Page offers** — each page can define an `offer` object. When the visitor accepts the offer (via a form field), the item is automatically added to the cart.
+2. **Cart button** — a floating button appears in the bottom-right corner showing the cart item count. It only appears when items are in the cart.
+3. **Cart drawer** — clicking the cart button opens a right-side slide-out panel showing all accepted offers with images, titles, prices, and a remove button. A "Proceed to Checkout" button takes the visitor to the checkout page.
+4. **Checkout page** — displays an order summary of all cart items and redirects to Stripe Checkout to complete payment.
+
+### Checkout settings
+
+Configure checkout in `settings.checkout`:
+
+```jsonc
+{
+  "settings": {
+    "checkout": {
+      "payment_type": "one_time",             // "one_time" | "subscription" | "pay_what_you_want"
+      "title": "Complete Your Order",
+      "stripe_publishable_key": "pk_live_...",
+
+      // Payment options
+      "allow_discount_codes": true,            // Show promo code field at Stripe checkout
+      "free_trial": { "enabled": true, "days": 14 },  // Subscriptions only
+      "payment_methods": ["card", "link"],
+      "payment_description": "My Product",
+      "client_reference_id": "{{comp_email}}", // Template strings supported
+
+      // Prefill from form fields
+      "prefill_fields": {
+        "customer_email": "comp_email",        // Component ID to read email from
+        "customer_name": "comp_name",
+        "customer_phone": "comp_phone"
+      },
+
+      // Appearance
+      "button_text": "Subscribe Now",
+      "testimonial": {
+        "enabled": true,
+        "text": "Best investment I've made...",
+        "author": "Jane S.",
+        "avatar": "https://..."
+      },
+      "show_disclaimer": true,
+      "disclaimer_text": "By purchasing you agree to our Terms",
+      "components": [],                        // Extra display components below order summary
+
+      // After payment
+      "send_receipt": true,
+      "success_redirect": "https://...",
+      "success_page_id": "thank_you"
+    }
+  }
+}
+```
+
+You also need to set your Stripe secret key via the settings API (see "Update settings" above):
+```json
+{ "stripe_secret_key": "rk_live_..." }
+```
+
+### Page offers (cart items)
+
+Define an `offer` on any page. When the visitor's form field matches the `accept_value`, the offer is added to the cart automatically:
+
+```jsonc
+{
+  "id": "pricing",
+  "title": "Choose Your Plan",
+  "components": [
+    {
+      "id": "offer_choice",
+      "type": "multiple_choice",
+      "label": "Select an option",
+      "options": [
+        { "value": "accept", "label": "Yes, I want this!" },
+        { "value": "decline", "label": "No thanks" }
+      ]
+    }
+  ],
+  "offer": {
+    "id": "growth-bundle",
+    "title": "Growth Bundle",
+    "price_display": "$49/mo",
+    "stripe_price_id": "price_...",
+    "image": "https://...",
+    "accept_field": "offer_choice",     // Component ID to watch
+    "accept_value": "accept"            // Value that triggers add-to-cart
+  }
+}
+```
+
+Cart items accumulate across pages — each page can present a different offer (e.g., main product on page 1, upsell on page 2, order bump on page 3). All accepted offers become Stripe Checkout line items.
+
+### Cart item buttons
+
+Cart items support an optional `button` that renders as a side link next to the price in the cart drawer and checkout summary:
+
+```jsonc
+{
+  "offer": {
+    "id": "growth-bundle",
+    "title": "Growth Bundle",
+    "price_display": "$49/mo",
+    "stripe_price_id": "price_...",
+    "button": { "label": "Details", "url": "https://example.com/growth", "style": "secondary", "size": "sm" }
+  }
+}
+```
+
+### Supported checkout targets
+
+Stripe hosted checkout is the default, but you can also redirect to: Polar.sh, LemonSqueezy, Gumroad, or any custom URL.
+
+### Cart events
+
+The following events are tracked automatically: `cart_add`, `cart_remove`, `checkout_start`, `checkout_skip`, `checkout_complete`.
 
 ---
 
