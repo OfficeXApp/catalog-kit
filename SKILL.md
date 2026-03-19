@@ -2,8 +2,8 @@
 name: catalog-kit
 description: |
   Build and manage marketing catalogs, landing pages, and multi-step funnels with your AI agent. Create catalogs from JSON schemas, publish them instantly, run A/B tests with weighted variants, and track visitor analytics — all through conversation.
-  Use when: (1) Creating or updating a catalog/funnel/landing page, (2) Checking analytics like visitors, conversions, and drop-off rates, (3) Running A/B tests on different catalog versions, (4) AI-routing visitors to the right catalog variant with natural language hints, (5) Managing API keys for team access, (6) Uploading videos for catalogs, (7) Viewing individual visitor journeys, (8) Reviewing response distributions for form fields, (9) Creating sandboxes to safely edit catalogs without affecting production, (10) Using the element inspector to get exact component references for AI agents, (11) Submitting form data headlessly via the Agent API for AI agent integrations, (12) Uploading and compressing images for fast loading, (13) Authoring catalogs as TypeScript files with full type safety, (14) Uploading and hosting downloadable files (PDFs, ZIPs, docs) with credit-based billing, (15) Building custom interactive UI with the CatalogKit global API bridge (window.CatalogKit) for inline scripts, real-time field access, and multi-form isolation, (16) AI agents can fill out catalog forms step-by-step via the stateful Agent Session API, (17) Configuring advanced Stripe checkout with 3D Secure verification and authorization holds for free trial funnels.
-  Triggers: catalog funnel, catalog kit, funnel builder, landing page, lead capture, create catalog, catalog analytics, conversion funnel, form builder, ab test, catalog api, ai routing, variant routing, hint routing, sandbox, element inspector, devtools, image upload, image compression, webp, typescript, ts config, file upload, file download, downloadable, hosted files, CatalogKit, window.CatalogKit, global api, inline script, html script, custom ui, api bridge, multi-form, agent api, headless form, agent session, form submission api, stripe checkout, 3d secure, 3ds, free trial, payment verification, trial end behavior, billing server, stripe webhooks
+  Use when: (1) Creating or updating a catalog/funnel/landing page, (2) Checking analytics like visitors, conversions, and drop-off rates, (3) Running A/B tests on different catalog versions, (4) AI-routing visitors to the right catalog variant with natural language hints, (5) Managing API keys for team access, (6) Uploading videos for catalogs, (7) Viewing individual visitor journeys, (8) Reviewing response distributions for form fields, (9) Creating sandboxes to safely edit catalogs without affecting production, (10) Using the element inspector to get exact component references for AI agents, (11) Submitting form data headlessly via the Agent API for AI agent integrations, (12) Uploading and compressing images for fast loading, (13) Authoring catalogs as TypeScript files with full type safety, (14) Uploading and hosting downloadable files (PDFs, ZIPs, docs) with credit-based billing, (15) Building custom interactive UI with the CatalogKit global API bridge (window.CatalogKit) for inline scripts, real-time field access, and multi-form isolation, (16) AI agents can fill out catalog forms step-by-step via the stateful Agent Session API, (17) Configuring advanced Stripe checkout with 3D Secure verification and authorization holds for free trial funnels, (18) Previewing catalogs locally with hot reload before deploying to cloud, (19) Using local file references (images, videos, scripts) that auto-upload to CDN on push.
+  Triggers: catalog funnel, catalog kit, funnel builder, landing page, lead capture, create catalog, catalog analytics, conversion funnel, form builder, ab test, catalog api, ai routing, variant routing, hint routing, sandbox, element inspector, devtools, image upload, image compression, webp, typescript, ts config, file upload, file download, downloadable, hosted files, CatalogKit, window.CatalogKit, global api, inline script, html script, custom ui, api bridge, multi-form, agent api, headless form, agent session, form submission api, stripe checkout, 3d secure, 3ds, free trial, payment verification, trial end behavior, billing server, stripe webhooks, local dev, local preview, dev server, hot reload, local assets, local files, catalogs dev
 ---
 
 # Catalog Kit
@@ -29,6 +29,8 @@ Build and manage marketing catalogs, landing pages, and multi-step funnels — d
 - **Upload & download files** — host downloadable files (PDFs, ZIPs, docs) on S3 with CDN delivery, credit-billed per 50MB
 - **Agent API** — AI agents can fill out catalog forms headlessly via the stateful session API, with server-side validation and progressive disclosure
 - **TypeScript-as-config** — author catalogs as .ts files with full type safety, then push via CLI
+- **Local preview** — `catalogs catalog dev my-catalog.ts` previews locally with hot reload, no deploy needed
+- **Local file references** — use `./images/hero.png` in schemas, auto-uploaded to CDN on push
 - **Custom JavaScript** — inject custom client-side logic via `html` components with `<script>` tags and the `window.CatalogKit` API bridge
 - **Custom HTML components** — render arbitrary HTML/CSS/JS inside catalogs using `type: "html"` components
 - **Custom React components** — register React components on `window.__catalogkit_components` for fully custom interactive UI
@@ -266,6 +268,10 @@ All fields are optional — only include the ones you want to change.
 GET https://api.catalogkit.cc/api/v1/catalogs
 ```
 
+**Query params:** `limit` (default 50, max 200), `cursor` (opaque pagination token), `include_sandboxes` (`true` to include sandbox catalogs)
+
+Supports cursor-based pagination for accounts with many catalogs. When more results are available, the response includes a `cursor` value — pass it as `?cursor=...` to fetch the next page. When `cursor` is `null`, you've reached the end.
+
 **Response:**
 ```json
 {
@@ -281,7 +287,8 @@ GET https://api.catalogkit.cc/api/v1/catalogs
       "created_at": "2024-01-01T00:00:00Z",
       "updated_at": "2024-01-01T00:00:00Z"
     }
-  ]
+  ],
+  "cursor": "eyJwayI6Ik..."
 }
 ```
 
@@ -735,7 +742,7 @@ GET https://api.catalogkit.cc/api/v1/catalogs/:id/schema/ids
 Manage API keys for team members or integrations.
 
 - `POST /api/v1/api-keys` — Create a key (roles: `reader`, `editor`, `admin`, `custom`). Returns the secret once — store it securely.
-- `GET /api/v1/api-keys` — List all keys (secrets redacted)
+- `GET /api/v1/api-keys` — List all keys (secrets redacted). Auto-paginates internally to return all keys.
 - `DELETE /api/v1/api-keys/:keyId` — Revoke a key
 - `POST /api/v1/api-keys/:keyId/rotate` — Rotate: revokes old key, creates new one with same config
 
@@ -802,6 +809,10 @@ GET https://api.catalogkit.cc/api/v1/images/:imageId/status
 ```
 GET https://api.catalogkit.cc/api/v1/images
 ```
+
+**Query params:** `limit` (default 50, max 200), `cursor` (opaque pagination token)
+
+Supports cursor-based pagination. Pass `cursor` from the previous response to fetch the next page. `cursor` is `null` when there are no more results.
 
 ### Opt-out of compression
 
@@ -876,6 +887,10 @@ Returns a presigned download URL (1-hour expiry) with `Content-Disposition: atta
 ```
 GET https://api.catalogkit.cc/api/v1/files
 ```
+
+**Query params:** `limit` (default 50, max 200), `cursor` (opaque pagination token)
+
+Supports cursor-based pagination. Pass `cursor` from the previous response to fetch the next page. `cursor` is `null` when there are no more results.
 
 ### File Download Component
 
@@ -2730,7 +2745,9 @@ No config files (`~/.catalog-kit/config.json`) or `.env` files are read. This is
 ### Commands
 
 ```bash
-catalogs catalog push schema.json --publish    # Push a JSON catalog
+catalogs catalog dev my-catalog.ts             # Preview locally at http://localhost:3456
+catalogs catalog dev my-catalog.ts --port 8080 # Custom port
+catalogs catalog push schema.json --publish    # Push a JSON catalog (auto-uploads local assets)
 catalogs catalog push catalog.ts --publish     # Push a TypeScript catalog (functions auto-serialized)
 catalogs catalog list                           # List all your catalogs
 catalogs video upload ./intro.mp4               # Upload a video
@@ -2749,12 +2766,117 @@ export CATALOG_KIT_TOKEN="cfk_..."
 # 2. Test connection — verify you're on the right account
 catalogs whoami
 
-# 3. Push a catalog (prints your identity before pushing)
+# 3. Preview locally (no token needed — purely offline)
+catalogs catalog dev my-catalog.ts
+
+# 4. Push to cloud (prints your identity before pushing)
 catalogs catalog push my-catalog.ts --publish
 
 # Or pass the token directly:
 catalogs --token cfk_... catalog push my-catalog.ts --publish
 ```
+
+---
+
+## Local Development & Local Assets
+
+### `catalogs catalog dev <file>`
+
+Preview your catalog locally without deploying. Starts a local server with hot reload:
+
+```bash
+catalogs catalog dev my-catalog.ts
+# => Local preview: http://localhost:3456
+# => Assets served from: /path/to/your/catalog/dir
+# => Watching for changes...
+```
+
+No token required — `dev` mode is purely local. Edit your catalog file, save, refresh the browser.
+
+### Local file references
+
+Reference images, videos, scripts, and files with relative paths in your catalog schema. They work locally in `dev` mode AND are automatically uploaded to CDN on `push`:
+
+```typescript
+// my-catalog.ts
+export default {
+  slug: "my-funnel",
+  schema_version: "1.0",
+  pages: {
+    intro: {
+      title: "Welcome",
+      components: [
+        {
+          id: "hero",
+          type: "image",
+          props: { src: "./images/hero.png" }         // local file
+        },
+        {
+          id: "demo",
+          type: "video",
+          props: { src: "./videos/demo.mp4" }         // local file
+        },
+        {
+          id: "custom_logic",
+          type: "html",
+          props: {
+            content: '<script src="./scripts/checkout.js"></script>'  // local script
+          }
+        },
+        {
+          id: "brochure",
+          type: "file_download",
+          props: {
+            src: "./files/brochure.pdf",              // local file
+            filename: "brochure.pdf"
+          }
+        }
+      ]
+    }
+  },
+  // ...
+};
+```
+
+**How it works:**
+
+| Context | What happens to `./images/hero.png` |
+|---|---|
+| `catalogs catalog dev` | Served from local filesystem at `http://localhost:3456/assets/images/hero.png` |
+| `catalogs catalog push` | Auto-uploaded to CDN, replaced with `https://d1abc...cloudfront.net/images/compressed/.../hero.webp` |
+
+**Rules:**
+- Relative paths (`./`, `../`) are resolved from the catalog file's directory
+- Absolute URLs (`https://...`) are left untouched
+- Images are auto-compressed to WebP on upload (free)
+- Videos are auto-transcoded to HLS on upload (credit cost applies)
+- Other files (PDFs, ZIPs, docs) are uploaded as-is (credit cost per 50MB)
+- No folder structure required — just place files wherever you want relative to your catalog file
+
+**Example project layout:**
+
+```
+my-project/
+  my-catalog.ts          # your catalog schema
+  images/
+    hero.png
+    logo.svg
+  videos/
+    demo.mp4
+  scripts/
+    calculator.js
+  files/
+    brochure.pdf
+```
+
+### Dev mode behavior
+
+| Feature | Dev mode | Production |
+|---|---|---|
+| Stripe checkout | Stubbed (visual indicator) | Live |
+| Analytics/events | Disabled | Enabled |
+| File serving | Local filesystem | CDN (CloudFront) |
+| Hot reload | On file save | N/A |
 
 ---
 
@@ -2975,7 +3097,7 @@ DELETE https://api.catalogkit.cc/api/v1/catalogs/:sandbox_id
 
 ### Listing catalogs with sandboxes
 
-By default, `GET /api/v1/catalogs` hides sandboxes. Add `?include_sandboxes=true` to include them. Each catalog response includes `sandbox_of` (null for regular catalogs, parent catalog ID for sandboxes).
+By default, `GET /api/v1/catalogs` hides sandboxes. Add `?include_sandboxes=true` to include them. Each catalog response includes `sandbox_of` (null for regular catalogs, parent catalog ID for sandboxes). Results are paginated — use `?limit=50&cursor=...` to page through large lists.
 
 ---
 
