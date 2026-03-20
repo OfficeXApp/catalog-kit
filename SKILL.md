@@ -3348,11 +3348,17 @@ Configure checkout in `settings.checkout`:
 
       // Skip
       "allow_skip": true,                      // Allow "Continue without paying" button (default: true, set false to require payment)
+      "skip_button_text": "No thanks, continue free", // Custom text for skip button (default: "Continue without paying")
 
       // Appearance
       "ui_mode": "hosted",                     // "hosted" (redirect) | "embedded" (Stripe embedded checkout)
                                                // When omitted + stripe_publishable_key is set: inline card fields (default)
       "button_text": "Subscribe Now",
+      "summary_lines": [                       // Display-only lines below cart items (no calculations — editor defines all text)
+        { "label": "Subtotal", "value": "$97.00" },
+        { "label": "Tax (8%)", "value": "$7.76" },
+        { "label": "Total", "value": "$104.76", "bold": true }
+      ],
       "testimonial": {
         "enabled": true,
         "text": "Best investment I've made...",
