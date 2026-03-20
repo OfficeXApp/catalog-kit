@@ -2202,6 +2202,54 @@ Each item in the `inputs` array has these fields:
 | `inputs` | array | Nested sub-components — always visible by default, auto-checks when required inputs filled |
 | `expand_on_select` | boolean | When `true`, nested inputs only show after checkbox is checked (no auto-check). Default: `false` |
 
+### Top Bar
+
+The fixed top bar supports navigation, branding, announcements, and countdowns via `settings.top_bar`.
+
+> **Important:** `title` and `announcement` are **separate fields** — do NOT confuse them.
+> - `title` — a **string** displayed as centered text in the nav bar row (same row as back button / progress)
+> - `announcement` — an **object** that renders a colored banner strip **above** the nav row
+
+```jsonc
+{
+  "settings": {
+    "top_bar": {
+      "enabled": true,             // false = hide entirely
+      "show_back_button": true,    // false = hide back nav
+      "show_progress": true,       // false = hide stepper/progress bar
+      "title": "My Brand",         // centered text IN the nav row (string)
+      "title_weight": "medium",    // "light" | "normal" | "medium" (default) | "semibold" | "bold"
+      "announcement": {            // colored banner strip ABOVE the nav row (object)
+        "text": "Free shipping on orders over $50!",
+        "bg_color": "#e53e3e",     // default: theme color
+        "text_color": "#ffffff",   // default: white
+        "html": "<b>SALE</b> — Use code <code>SAVE20</code>"  // overrides text if set
+      },
+      "countdown": {               // optional countdown timer (replaces progress indicator)
+        "target_date": "2026-04-01T00:00:00Z",
+        "label": "LAUNCH PRICE ENDS IN",
+        "expired_text": "OFFER EXPIRED"
+      },
+      "custom_html": "<div>...</div>",  // raw HTML replaces all default nav row content
+      "className": "",                   // extra CSS classes on the container
+      "style": {}                        // inline style overrides
+    }
+  }
+}
+```
+
+| Config | Effect |
+|---|---|
+| Omitted / `{}` | Default — stepper or progress bar + back button |
+| `{ enabled: false }` | Top bar hidden entirely, content moves up |
+| `{ title: "Brand", title_weight: "light" }` | Centered title with light font weight |
+| `{ announcement: { text: "..." } }` | Colored banner strip above nav row |
+| `{ countdown: {...} }` | Countdown timer replaces progress indicator |
+| `{ custom_html: "..." }` | Raw HTML replaces all default content in nav row |
+| `{ show_progress: false }` | Top bar visible (for back button) but no progress |
+
+Page content padding adjusts dynamically based on the actual top bar height — announcements, custom HTML, and other content won't overlap.
+
 ### Progress Line
 
 Add a thin progress line at the top of the viewport (like Fillout.com) that fills as the visitor progresses:
