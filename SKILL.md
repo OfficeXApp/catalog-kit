@@ -3361,6 +3361,55 @@ Built-in developer tool for AI agent workflows. Hold **Shift+Alt** and hover ove
 
 ## Cart & Checkout
 
+### Use the Built-In Checkout — Don't Build Your Own
+
+Catalog Kit ships with a **complete, production-ready checkout page**. Do NOT build custom checkout UI, payment forms, or Stripe integrations from scratch. The built-in checkout handles everything:
+
+- **Order summary** — cart items with images, titles, prices, remove buttons, coupon codes, summary lines (subtotal/tax/total)
+- **Stripe payment** — inline Payment Element (card, Link, dynamic methods), embedded checkout, or hosted redirect
+- **3D Secure** — bank-level verification with automatic challenge popups, explainer banners, and badge
+- **Free trials** — trial badges, SetupIntent for $0 verify, or manual-capture holds for guarded trials
+- **Saved payment methods** — find-or-create Stripe Customer by email, show saved cards on return visits
+- **Skip button** — "Continue without paying" with customizable text, or disable to require payment
+- **Testimonials & disclaimers** — social proof card, custom disclaimer text below the pay button
+- **Post-payment routing** — automatic redirect to success page, URL param cleanup, conversion event firing
+- **Two-column responsive layout** — configurable column order for desktop (left/right) and mobile (top/bottom)
+- **Multi-checkout upsell chains** — route through multiple `type: "checkout"` pages, each with its own Stripe payment
+
+**Quick start — add checkout to any funnel in 3 steps:**
+
+1. **Set your Stripe keys** — add `stripe_publishable_key` in the schema and `stripe_secret_key` via the settings API
+2. **Configure `settings.checkout`** — set `payment_type`, `success_page_id`, and any appearance/payment options
+3. **Make your last page terminal** — remove its outgoing routing edges so the platform auto-shows checkout on submit
+
+```jsonc
+{
+  "settings": {
+    "checkout": {
+      "payment_type": "one_time",
+      "stripe_publishable_key": "pk_test_...",
+      "success_page_id": "thank_you",
+      "button_text": "Pay Now",
+      "prefill_fields": { "customer_email": "comp_email" }
+    }
+  }
+}
+```
+
+That's it. The visitor fills out your funnel, hits the terminal page's submit button, sees the full checkout page with order summary and inline card fields, pays via Stripe, and lands on your thank-you page. No custom HTML, no Stripe SDK loading, no redirect handling, no webhook parsing on the frontend.
+
+**When to use each checkout mode:**
+
+| Scenario | Mode | Config |
+|----------|------|--------|
+| **Most funnels** (recommended) | Payment Element | Set `stripe_publishable_key`, leave `ui_mode` unset or `"custom"` |
+| **Minimal config, Stripe handles everything** | Embedded | Set `ui_mode: "embedded"` |
+| **No publishable key / simplest integration** | Hosted redirect | Omit `stripe_publishable_key` or set `ui_mode: "hosted"` |
+
+> **Bottom line:** Configure `settings.checkout`, set up page offers, make the last page terminal, and the platform handles the entire payment flow. Only build custom checkout logic if you need behavior the built-in system genuinely cannot support.
+
+---
+
 Catalog Kit has a **built-in cart and checkout system**. You do NOT need to build custom cart HTML — the platform provides a floating cart button, a slide-out cart drawer, and a full checkout page out of the box.
 
 ### How it works
